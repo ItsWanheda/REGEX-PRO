@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Regex Pro — Modern Regex Tester</title>
+  <meta name="description" content="A modern, powerful regex testing tool with live highlighting, explanations, replace, split and more." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./Style/style.css" />
+</head>
+<body>
+  <!-- ====================== Toast Container ====================== -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ====================== Header ====================== -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo" aria-label="Regex Pro">
+        <span class="logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </span>
+        <span class="logo-text">Regex<span class="accent">Pro</span></span>
+      </div>
+      <span class="badge">v1.0</span>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" data-action="loadSample" title="Load sample text">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>Sample</span>
+      </button>
+      <button class="icon-btn" data-action="copyRegex" title="Copy regex (Ctrl+Shift+C)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Regex</span>
+      </button>
+      <button class="icon-btn" data-action="copyMatches" title="Copy matches as JSON">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+        <span>Matches</span>
+      </button>
+      <button class="icon-btn" data-action="copyResult" title="Copy replace result">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Result</span>
+      </button>
+      <div class="dropdown">
+        <button class="icon-btn" data-action="downloadMenu" title="Download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Download</span>
+        </button>
+        <div class="dropdown-menu" id="downloadMenu" role="menu">
+          <button role="menuitem" data-action="downloadJSON">Download JSON</button>
+          <button role="menuitem" data-action="downloadTXT">Download TXT</button>
+        </div>
+      </div>
+      <button class="icon-btn icon-only" data-action="saveFavorite" title="Save to favorites (Ctrl+D)" aria-label="Save to favorites">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </button>
+      <button class="icon-btn icon-only" data-action="clearAll" title="Clear all (Ctrl+L)" aria-label="Clear all">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+      <button class="icon-btn icon-only" data-action="showHelp" title="Keyboard shortcuts (?)" aria-label="Help">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ====================== Main App ====================== -->
+  <div class="app-container">
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar" id="sidebar" aria-label="Tools and references">
+      <div class="sidebar-tabs" role="tablist">
+        <button class="tab active" role="tab" data-tab="cheatsheet" aria-selected="true">Cheatsheet</button>
+        <button class="tab" role="tab" data-tab="library" aria-selected="false">Library</button>
+        <button class="tab" role="tab" data-tab="history" aria-selected="false">History</button>
+        <button class="tab" role="tab" data-tab="favorites" aria-selected="false">Favorites</button>
+      </div>
+
+      <div class="sidebar-search">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="sidebarSearch" placeholder="Search..." aria-label="Search sidebar content" />
+      </div>
+
+      <div class="sidebar-content">
+        <!-- Cheatsheet -->
+        <div class="tab-panel active" id="panel-cheatsheet" role="tabpanel"></div>
+        <!-- Library -->
+        <div class="tab-panel" id="panel-library" role="tabpanel"></div>
+        <!-- History -->
+        <div class="tab-panel" id="panel-history" role="tabpanel">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <p>No recent regex history yet.<br/>Start testing to see your history here.</p>
+          </div>
+        </div>
+        <!-- Favorites -->
+        <div class="tab-panel" id="panel-favorites" role="tabpanel">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <p>No favorites yet.<br/>Click the ★ icon to save a pattern.</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Resize Handle -->
+    <div class="resize-handle" id="resizeHandle" role="separator" aria-orientation="vertical" tabindex="0" title="Drag to resize"></div>
+
+    <!-- ===== Main Content ===== -->
+    <main class="main-content">
+      <!-- Regex Input -->
+      <section class="card" aria-labelledby="regex-heading">
+        <div class="card-header">
+          <h2 id="regex-heading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Regular Expression
+          </h2>
+          <span id="regexStatus" class="status-pill" aria-live="polite">Ready</span>
+        </div>
+        <div class="regex-input-wrapper">
+          <span class="regex-delimiter" aria-hidden="true">/</span>
+          <input
+            type="text"
+            id="regexInput"
+            class="regex-input"
+            placeholder="Enter your pattern..."
+            spellcheck="false"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            aria-label="Regular expression pattern"
+          />
+          <span class="regex-delimiter" aria-hidden="true">/</span>
+          <input
+            type="text"
+            id="flagsInput"
+            class="flags-input"
+            placeholder="flags"
+            maxlength="6"
+            spellcheck="false"
+            autocomplete="off"
+            aria-label="Regex flags"
+          />
+        </div>
+        <div class="flag-toggles" role="group" aria-label="Regex flag toggles">
+          <label class="flag-toggle" data-flag="g">
+            <input type="checkbox" data-flag="g" checked />
+            <span class="flag-letter">g</span>
+            <span class="flag-name">global</span>
+          </label>
+          <label class="flag-toggle" data-flag="i">
+            <input type="checkbox" data-flag="i" />
+            <span class="flag-letter">i</span>
+            <span class="flag-name">ignore case</span>
+          </label>
+          <label class="flag-toggle" data-flag="m">
+            <input type="checkbox" data-flag="m" />
+            <span class="flag-letter">m</span>
+            <span class="flag-name">multiline</span>
+          </label>
+          <label class="flag-toggle" data-flag="s">
+            <input type="checkbox" data-flag="s" />
+            <span class="flag-letter">s</span>
+            <span class="flag-name">dotall</span>
+          </label>
+          <label class="flag-toggle" data-flag="u">
+            <input type="checkbox" data-flag="u" />
+            <span class="flag-letter">u</span>
+            <span class="flag-name">unicode</span>
+          </label>
+          <label class="flag-toggle" data-flag="y">
+            <input type="checkbox" data-flag="y" />
+            <span class="flag-letter">y</span>
+            <span class="flag-name">sticky</span>
+          </label>
+        </div>
+        <div id="regexError" class="error-msg hidden" role="alert"></div>
+      </section>
+
+      <!-- Test String -->
+      <section class="card" id="testStringCard" aria-labelledby="test-heading">
+        <div class="card-header">
+          <h2 id="test-heading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Test String
+          </h2>
+          <div class="card-actions">
+            <label class="icon-btn" for="fileInput" title="Upload file or drag & drop">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Upload</span>
+            </label>
+            <input type="file" id="fileInput" accept=".txt,.md,.js,.ts,.json,.html,.css,.xml,.csv,.log" hidden />
+            <button class="icon-btn" data-action="clearText" title="Clear text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+        <div class="textarea-wrapper" id="dropZone">
+          <textarea
+            id="testString"
+            placeholder="Enter or paste your test text here... (You can also drag & drop a text file)"
+            spellcheck="false"
+            aria-label="Test string input"
+          ></textarea>
+          <div class="drop-overlay">
+            <div class="drop-message">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p>Drop file to load text</p>
+            </div>
+          </div>
+        </div>
+        <div class="textarea-meta">
+          <span id="charCount">0 characters</span>
+          <span class="dot">•</span>
+          <span id="lineCount">1 line</span>
+          <span class="dot">•</span>
+          <span id="wordCount">0 words</span>
+        </div>
+      </section>
+
+      <!-- Highlighted Matches -->
+      <section class="card" aria-labelledby="result-heading">
+        <div class="card-header">
+          <h2 id="result-heading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Highlighted Matches
+          </h2>
+          <div class="card-actions">
+            <span id="matchCount" class="badge-count">0 matches</span>
+          </div>
+        </div>
+        <div id="highlightedOutput" class="highlighted-output" aria-live="polite">
+          <div class="placeholder">Your matched text will appear here in real-time.</div>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="swatch match"></span>Match</span>
+          <span class="legend-item"><span class="swatch group"></span>Capture group</span>
+        </div>
+      </section>
+
+      <!-- Match Information -->
+      <section class="card" aria-labelledby="info-heading">
+        <div class="card-header">
+          <h2 id="info-heading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Match Information
+          </h2>
+        </div>
+        <div class="info-grid">
+          <div class="info-tile">
+            <span class="info-label">Total</span>
+            <span class="info-value" id="infoTotal">0</span>
+          </div>
+          <div class="info-tile">
+            <span class="info-label">First match</span>
+            <span class="info-value mono" id="infoFirst">—</span>
+          </div>
+          <div class="info-tile">
+            <span class="info-label">Last match</span>
+            <span class="info-value mono" id="infoLast">—</span>
+          </div>
+          <div class="info-tile">
+            <span class="info-label">Pattern</span>
+            <span class="info-value mono" id="infoPattern">—</span>
+          </div>
+        </div>
+        <div id="matchList" class="match-list"></div>
+      </section>
+
+      <!-- Regex Explanation -->
+      <section class="card" aria-labelledby="explain-heading">
+        <div class="card-header">
+          <h2 id="explain-heading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+            Regex Explanation
+          </h2>
+        </div>
+        <div id="explanation" class="explanation">
+          <div class="placeholder">Enter a pattern to see a human-readable explanation.</div>
+        </div>
+      </section>
+
+      <!-- Replace Tool -->
+      <section class="card" aria-labelledby="replace-heading">
+        <div class="card-header">
+          <h2 id="replace-heading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 20H4v-6"/><path d="M20 4l-7 7"/><path d="M4 20l7-7"/></svg>
+            Replace Tool
+          </h2>
+          <span class="hint">Supports <code>$1</code>, <code>$&</code>, <code>$`</code>, <code>$'</code>, <code>$$</code></span>
+        </div>
+        <input
+          type="text"
+          id="replaceInput"
+          class="replace-input"
+          placeholder="Replacement text... (e.g. $1 or [matched])"
+          spellcheck="false"
+          autocomplete="off"
+        />
+        <div class="replace-actions">
+          <button class="btn btn-primary" data-action="replaceFirst">Replace First</button>
+          <button class="btn btn-primary" data-action="replaceAll">Replace All</button>
+          <button class="btn btn-ghost" data-action="copyResult">Copy Result</button>
+          <button class="btn btn-ghost" data-action="applyReplace" title="Apply replacement to test text">Apply to Text ↓</button>
+        </div>
+        <div class="result-label">Preview</div>
+        <div id="replacePreview" class="result-preview"><span class="placeholder">Replacement preview will appear here.</span></div>
+      </section>
+
+      <!-- Split Tool -->
+      <section class="card" aria-labelledby="split-heading">
+        <div class="card-header">
+          <h2 id="split-heading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/><path d="M12 3v18"/></svg>
+            Split Tool
+          </h2>
+          <span id="splitCount" class="badge-count">0 segments</span>
+        </div>
+        <div id="splitResult" class="split-result">
+          <div class="placeholder">Split results will appear here.</div>
+        </div>
+      </section>
+
+      <footer class="app-footer">
+        <p>Built with ❤️ using pure HTML, CSS &amp; JavaScript — No frameworks, No backend.</p>
+      </footer>
+    </main>
+  </div>
+
+  <!-- ====================== Help Modal ====================== -->
+  <div class="modal-overlay hidden" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="helpTitle">Keyboard Shortcuts</h2>
+        <button class="icon-btn icon-only" data-action="closeHelp" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="shortcut-list">
+          <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>Enter</kbd><span>Force re-run matching</span></div>
+          <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>K</kbd><span>Focus regex input</span></div>
+          <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>L</kbd><span>Clear all</span></div>
+          <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>D</kbd><span>Save to favorites</span></div>
+          <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd><span>Copy regex</span></div>
+          <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd><span>Replace all</span></div>
+          <div class="shortcut"><kbd>Esc</kbd><span>Close modal / panels</span></div>
+          <div class="shortcut"><kbd>?</kbd><span>Show this help</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./Script/script.js"></script>
+</body>
+</html>
