@@ -97,7 +97,7 @@ Then visit http://localhost:8000
 ---
 
 ## 🧩 Tech Stack
-<div align="center">
+
 
 | Layer | Technology |
 |-------|------------|
@@ -106,7 +106,6 @@ Then visit http://localhost:8000
 | Behavior | Vanilla JavaScript (ES2020+, no frameworks) |
 | Fonts | [Inter](https://fonts.google.com/specimen/Inter) + [JetBrains Mono](https://fonts.google.com/specimen/JetBrains+Mono) |
 
-</div>
 **Zero runtime dependencies**. The only external resource is Google Fonts, which is gracefully degradable — the app works fully offline if needed.
 
 ---
