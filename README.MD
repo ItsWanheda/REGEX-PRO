@@ -155,7 +155,6 @@ This means you can use, modify, distribute, and even sell projects based on this
 ## 🙏 Acknowledgments
 * Design inspiration from modern developer tools like [regex101](https://regex101.com/), [RegExr](https://regexr.com/), and [DevTools](https://developer.chrome.com/docs/devtools/)
 * Icons hand-crafted as inline SVGs (no icon library bloat)
-* Built with ❤️ as a portfolio piece
 
 ---
 
