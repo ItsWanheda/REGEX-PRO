@@ -141,7 +141,7 @@ Contributions make the open source community an amazing place to learn, inspire,
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-Please read [Contributing.MD](./Contributing.MD) for details on our code of conduct and the process for submitting pull requests.
+Please read [Contributing.MD](./CONTRIBUTING.MD) for details on our code of conduct and the process for submitting pull requests.
 
 ---
 
