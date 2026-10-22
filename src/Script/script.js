@@ -793,11 +793,6 @@
       dom.replacePreview.innerHTML = '<span class="placeholder">Replacement preview will appear here.</span>';
       return;
     }
-    if (text.length === 0) {
-      dom.replacePreview.innerHTML = '<span class="placeholder">Enter text to preview replacement.</span>';
-      state.lastResult = '';
-      return;
-    }
     let result = precomputedResult;
     if (!isPrecomputed) {
       try {
@@ -1003,6 +998,7 @@
     stopRegex() {
       state.evaluationId++;
       RegexWorker.cancel('evaluate', 'Stopped by user.');
+      RegexWorker.cancel('replace', 'Stopped by user.');
       dom.stopRegexButton.disabled = true;
       state.matches = [];
       state.matchesTruncated = false;
