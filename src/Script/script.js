@@ -668,6 +668,7 @@
     const compiled = RegexEngine.compile(state.pattern, state.flags);
     if (compiled.error) {
       RegexWorker.cancel('evaluate', 'Invalid pattern.');
+      RegexWorker.cancel('replace', 'Invalid pattern.');
       state.matches = [];
       state.matchesTruncated = false;
       showError(compiled.error);
