@@ -6,6 +6,7 @@
   'use strict';
   const MAX_MATCHES = 50000, MAX_SEGMENTS = 50000, MAX_TEXT_LENGTH = 5000000;
   const MAX_PATTERN_LENGTH = 10000, MAX_REPLACEMENT_LENGTH = 10000, MAX_RESULT_LENGTH = 10000000;
+  const MAX_PREVIEW_LENGTH = 250000;
   const ALLOWED_FLAGS = /^[dgimsuvy]*$/;
 
   function validateFlags(flags) {
@@ -19,9 +20,9 @@
   function compile(pattern, flags) {
     if (typeof pattern !== 'string') return { regex: null, error: 'Regex pattern must be a string.' };
     if (pattern.length > MAX_PATTERN_LENGTH) return { regex: null, error: 'Regex pattern is too long (maximum ' + MAX_PATTERN_LENGTH + ' characters).' };
-    if (pattern === '') return { regex: null, error: null };
     const flagError = validateFlags(flags);
     if (flagError) return { regex: null, error: flagError };
+    if (pattern === '') return { regex: null, error: null };
     try { return { regex: new RegExp(pattern, flags), error: null }; }
     catch (error) { return { regex: null, error: error && error.message ? error.message : 'Invalid regular expression.' }; }
   }
@@ -207,12 +208,35 @@
     const flags = regex.flags.includes('g') ? regex.flags : regex.flags + 'g';
     return text.replace(new RegExp(regex.source, flags), replacement);
   }
-  function split(regex, text, maxSegments) {
+  function splitSummary(regex, text, maxSegments) {
     if (typeof text !== 'string') text = String(text == null ? '' : text);
     if (text.length > MAX_TEXT_LENGTH) throw new Error('Input text is too large (maximum ' + MAX_TEXT_LENGTH.toLocaleString() + ' characters).');
-    if (!(regex instanceof RegExp)) return [text];
-    const limit = Number.isInteger(maxSegments) && maxSegments > 0 ? Math.min(maxSegments, MAX_SEGMENTS) : MAX_SEGMENTS;
-    return text.split(new RegExp(regex.source, regex.flags), limit);
+    const requestedLimit = Number.isInteger(maxSegments) && maxSegments > 0 ? maxSegments : MAX_SEGMENTS;
+    const limit = Math.min(requestedLimit, MAX_SEGMENTS);
+    if (!(regex instanceof RegExp)) return { segments: [text], truncated: false };
+    // Probe one extra segment so hitting the exact cap is not mistaken for truncation.
+    const result = text.split(new RegExp(regex.source, regex.flags), limit + 1);
+    const truncated = result.length > limit;
+    return { segments: truncated ? result.slice(0, limit) : result, truncated };
+  }
+
+  function split(regex, text, maxSegments) {
+    return splitSummary(regex, text, maxSegments).segments;
+  }
+
+  function createPreview(text, matches, maxCharacters) {
+    if (typeof text !== 'string') text = String(text == null ? '' : text);
+    const requestedLimit = Number.isInteger(maxCharacters) && maxCharacters > 0 ? maxCharacters : MAX_PREVIEW_LENGTH;
+    const limit = Math.min(requestedLimit, MAX_PREVIEW_LENGTH);
+    const previewText = text.slice(0, limit);
+    const previewMatches = Array.isArray(matches)
+      ? matches.filter(match => match && Number.isFinite(match.index) && match.index < limit)
+      : [];
+    return {
+      html: highlight(previewText, previewMatches),
+      truncated: text.length > previewText.length,
+      visibleLength: previewText.length
+    };
   }
 
   function normalizeStoredList(value, limit) {
@@ -242,16 +266,16 @@
     if (data.op === 'replace') return { replaceResult: replace(compiled.regex, text, data.replacement == null ? '' : data.replacement, data.all !== false) };
     const found = findAll(compiled.regex, text, data.maxMatches);
     const replaceResult = replace(compiled.regex, text, data.replacement == null ? '' : data.replacement, true);
-    const segments = split(compiled.regex, text, MAX_SEGMENTS);
+    const splitResult = splitSummary(compiled.regex, text, MAX_SEGMENTS);
     return {
-      matches: found.matches, truncated: found.truncated, replaceResult, segments,
-      segmentsTruncated: segments.length >= MAX_SEGMENTS
+      matches: found.matches, truncated: found.truncated, replaceResult, segments: splitResult.segments,
+      segmentsTruncated: splitResult.truncated
     };
   }
 
   return {
-    MAX_MATCHES, MAX_SEGMENTS, MAX_TEXT_LENGTH, MAX_PATTERN_LENGTH, MAX_REPLACEMENT_LENGTH,
-    compile, validateFlags, advanceStringIndex, findAll, escapeHtml, highlight, replace, split,
+    MAX_MATCHES, MAX_SEGMENTS, MAX_TEXT_LENGTH, MAX_PATTERN_LENGTH, MAX_REPLACEMENT_LENGTH, MAX_PREVIEW_LENGTH,
+    compile, validateFlags, advanceStringIndex, findAll, escapeHtml, highlight, createPreview, replace, split, splitSummary,
     normalizeStoredList, run
   };
 });

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-10-22
+
+### Fixed
+- Validate flags even when the regex pattern is empty.
+- Report split output truncation only when segments actually exceed the configured cap.
+- Bound highlighted preview rendering for large inputs while preserving full-input match counts.
+
+### Added
+- Regression coverage for empty-pattern flag validation, exact split limits, and bounded HTML-safe previews.
+
 ## [1.1.0] - 2026-10-22
 
 ### Fixed

@@ -8,7 +8,7 @@ Built with pure HTML, CSS & JavaScript — zero dependencies, zero backend, zero
 
 [**Live Demo**](#) · [**Report Bug**](../../issues) · [**Request Feature**](../../issues)
 
-![Version](https://img.shields.io/badge/version-1.1.0-667eea?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.1.1-667eea?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-10b981?style=for-the-badge)
 ![No Dependencies](https://img.shields.io/badge/dependencies-zero-f472b6?style=for-the-badge)
 ![Vanilla JS](https://img.shields.io/badge/JS-vanilla-yellow?style=for-the-badge)
@@ -28,7 +28,7 @@ Built with pure HTML, CSS & JavaScript — zero dependencies, zero backend, zero
 - 📊 **Detailed match info** — positions, lengths, captured & named groups
 - ❌ **Friendly error messages** for invalid regex patterns
 - 🛡️ **Worker-isolated execution** with a 2.5-second timeout and a manual Stop control
-- 🧯 **Resource limits** for pattern length, text size, matches, split segments, and replacement output
+- 🧯 **Resource limits** for pattern length, text size, matches, split segments, replacement output, and highlighted preview rendering
 - 🧩 **Correct capture offsets** and Unicode-safe zero-width match advancement
 - 📱 **100% responsive** — works beautifully on mobile, tablet & desktop
 
@@ -142,6 +142,7 @@ The regression suite covers capture offsets, named and unmatched groups, zero-wi
 ### Safety limits
 - Pattern: 10,000 characters maximum
 - Test text: 5,000,000 characters maximum
+- Highlighted preview: 250,000 characters maximum (full matching remains in the worker)
 - Matches and split segments: 50,000 each
 - Replacement input: 10,000 characters maximum
 - Worker evaluation timeout: 2.5 seconds for UI operations
