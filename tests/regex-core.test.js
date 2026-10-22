@@ -97,5 +97,5 @@ test('malformed or hostile persistence data is normalized safely', () => {
 test('replacement and split preserve expected semantics with bounded results', () => {
   const compiled = RegexCore.compile('(\\w+)', 'g');
   assert.equal(RegexCore.replace(compiled.regex, 'one two', '<$1>', true), '<one> <two>');
-  assert.deepEqual(RegexCore.split(compiled.regex, 'one two', 10), ['', ' ', '']);
+  assert.deepEqual(RegexCore.split(compiled.regex, 'one two', 10), ['', 'one', ' ', 'two', '']);
 });
