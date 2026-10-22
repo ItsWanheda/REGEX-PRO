@@ -100,12 +100,7 @@ test('replacement prefix and suffix tokens are included in output-size limits', 
   const compiled = RegexCore.compile('.', 'g');
   const text = 'a'.repeat(5000);
   assert.throws(() => RegexCore.replace(compiled.regex, text, '$\u0060', true), /may exceed/);
-  assert.throws(() => RegexCore.replace(compiled.regex, text, "
-  const compiled = RegexCore.compile('(\\w+)', 'g');
-  assert.equal(RegexCore.replace(compiled.regex, 'one two', '<$1>', true), '<one> <two>');
-  assert.deepEqual(RegexCore.split(compiled.regex, 'one two', 10), ['', 'one', ' ', 'two', '']);
-});
-", true), /may exceed/);
+  assert.throws(() => RegexCore.replace(compiled.regex, text, "$'", true), /may exceed/);
 });
 
 test('replacement and split preserve expected semantics with bounded results', () => {
