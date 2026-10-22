@@ -842,7 +842,7 @@
     let lines = 1;
     let words = 0;
     let inWord = false;
-    const isWhitespace = /\\s/;
+    const isWhitespace = /\s/;
     for (let i = 0; i < text.length; i++) {
       const character = text[i];
       if (character === '\n') lines++;
