@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: ["main", "fix/regex-regression-hardening"]
+    branches: ["main", "fix/regex-regression-hardening", "fix/regex-engine-regressions"]
   pull_request:
   workflow_dispatch:
 
