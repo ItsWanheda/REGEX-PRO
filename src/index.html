@@ -116,6 +116,7 @@
             Regular Expression
           </h2>
           <span id="regexStatus" class="status-pill" aria-live="polite">Ready</span>
+          <button id="stopRegexButton" class="btn btn-ghost" data-action="stopRegex" type="button" disabled aria-label="Stop regex evaluation">Stop</button>
         </div>
         <div class="regex-input-wrapper">
           <span class="regex-delimiter" aria-hidden="true">/</span>
@@ -136,7 +137,7 @@
             id="flagsInput"
             class="flags-input"
             placeholder="flags"
-            maxlength="6"
+            maxlength="8"
             spellcheck="false"
             autocomplete="off"
             aria-label="Regex flags"
@@ -172,6 +173,16 @@
             <input type="checkbox" data-flag="y" />
             <span class="flag-letter">y</span>
             <span class="flag-name">sticky</span>
+          </label>
+          <label class="flag-toggle" data-flag="d">
+            <input type="checkbox" data-flag="d" />
+            <span class="flag-letter">d</span>
+            <span class="flag-name">indices</span>
+          </label>
+          <label class="flag-toggle" data-flag="v">
+            <input type="checkbox" data-flag="v" />
+            <span class="flag-letter">v</span>
+            <span class="flag-name">unicode sets</span>
           </label>
         </div>
         <div id="regexError" class="error-msg hidden" role="alert"></div>
@@ -352,6 +363,8 @@
     </div>
   </div>
 
+  <script src="./Script/regex-core.js"></script>
+  <script src="./Script/regex-worker-client.js"></script>
   <script src="./Script/script.js"></script>
 </body>
 </html>
