@@ -651,21 +651,6 @@
     state.text = dom.testString.value;
     updateTextMeta();
 
-    if (!state.pattern) {
-      RegexWorker.cancel('evaluate', 'Pattern cleared.');
-      RegexWorker.cancel('replace', 'Pattern cleared.');
-      state.matches = [];
-      state.matchesTruncated = false;
-      clearResults();
-      hideError();
-      setStatus('', 'Ready');
-      dom.explanation.innerHTML = '<div class="placeholder">Enter a pattern to see a human-readable explanation.</div>';
-      dom.replacePreview.innerHTML = '<span class="placeholder">Replacement preview will appear here.</span>';
-      renderSplit(state.text, null, [state.text]);
-      dom.stopRegexButton.disabled = true;
-      return;
-    }
-
     const compiled = RegexEngine.compile(state.pattern, state.flags);
     if (compiled.error) {
       RegexWorker.cancel('evaluate', 'Invalid pattern.');
@@ -677,6 +662,21 @@
       clearResults();
       dom.explanation.innerHTML = Explainer.render(state.pattern);
       dom.replacePreview.innerHTML = '<span class="placeholder">Fix regex errors first.</span>';
+      renderSplit(state.text, null, [state.text]);
+      dom.stopRegexButton.disabled = true;
+      return;
+    }
+
+    if (!state.pattern) {
+      RegexWorker.cancel('evaluate', 'Pattern cleared.');
+      RegexWorker.cancel('replace', 'Pattern cleared.');
+      state.matches = [];
+      state.matchesTruncated = false;
+      clearResults();
+      hideError();
+      setStatus('', 'Ready');
+      dom.explanation.innerHTML = '<div class="placeholder">Enter a pattern to see a human-readable explanation.</div>';
+      dom.replacePreview.innerHTML = '<span class="placeholder">Replacement preview will appear here.</span>';
       renderSplit(state.text, null, [state.text]);
       dom.stopRegexButton.disabled = true;
       return;
