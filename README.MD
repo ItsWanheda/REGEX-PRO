@@ -137,7 +137,7 @@ The project keeps zero runtime dependencies. With Node.js 18 or later installed,
 npm test
 ```
 
-The regression suite covers capture offsets, named and unmatched groups, zero-width and Unicode behavior, flag validation, partial-result warnings, worker timeout termination, HTML escaping, persistence recovery, replacement, and split behavior. GitHub Actions runs the suite on pushes and pull requests.
+The regression suite covers capture offsets, named and unmatched groups, zero-width and Unicode behavior, flag validation, partial-result warnings, worker timeout termination, HTML escaping, persistence recovery, replacement, and split behavior. GitHub Actions runs the suite on pushes and pull requests. See the [regression checklist](./docs/REGRESSION_CHECKLIST.md) for the full scenario list.
 
 ### Safety limits
 - Pattern: 10,000 characters maximum
