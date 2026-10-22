@@ -109,22 +109,104 @@
     return html;
   }
 
+  function replacementExpansionLength(template, text, match) {
+    const groups = match.groups || [];
+    const named = match.namedGroups || {};
+    const hasNamedGroups = Object.keys(named).length > 0;
+    let length = 0;
+
+    for (let i = 0; i < template.length; i++) {
+      if (template[i] !== '$' || i + 1 >= template.length) {
+        length++;
+        continue;
+      }
+
+      const next = template[i + 1];
+      if (next === '$') {
+        length++;
+        i++;
+      } else if (next === '&') {
+        length += match.full.length;
+        i++;
+      } else if (next === '\u0060') {
+        length += match.index;
+        i++;
+      } else if (next === "'") {
+        length += text.length - match.end;
+        i++;
+      } else if (next === '<' && hasNamedGroups) {
+        const close = template.indexOf('>', i + 2);
+        if (close !== -1) {
+          const name = template.slice(i + 2, close);
+          const value = named[name];
+          if (typeof value === 'string') length += value.length;
+          i = close;
+        } else {
+          length++;
+        }
+      } else if (next >= '0' && next <= '9') {
+        const firstDigit = next.charCodeAt(0) - 48;
+        const secondChar = template[i + 2];
+        const hasSecondDigit = secondChar >= '0' && secondChar <= '9';
+        const twoDigitGroup = hasSecondDigit ? firstDigit * 10 + secondChar.charCodeAt(0) - 48 : -1;
+
+        if (hasSecondDigit && twoDigitGroup > 0 && twoDigitGroup <= groups.length) {
+          const value = groups[twoDigitGroup - 1];
+          if (typeof value === 'string') length += value.length;
+          i += 2;
+        } else if (firstDigit > 0 && firstDigit <= groups.length) {
+          const value = groups[firstDigit - 1];
+          if (typeof value === 'string') length += value.length;
+          i++;
+        } else {
+          // Invalid capture references leave the dollar literal; process digits normally.
+          length++;
+        }
+      } else {
+        length++;
+      }
+
+      if (length > MAX_RESULT_LENGTH) return length;
+    }
+    return length;
+  }
+
+  function assertSafeReplacementLength(text, replacement, matches) {
+    let matchedLength = 0;
+    let expandedLength = 0;
+    for (const match of matches) {
+      matchedLength += match.end - match.index;
+      expandedLength += replacementExpansionLength(replacement, text, match);
+      if (text.length - matchedLength + expandedLength > MAX_RESULT_LENGTH) {
+        throw new Error('Replacement result may exceed ' + MAX_RESULT_LENGTH.toLocaleString() + ' characters. Use a shorter replacement or smaller input.');
+      }
+    }
+    if (text.length - matchedLength + expandedLength > MAX_RESULT_LENGTH) {
+      throw new Error('Replacement result may exceed ' + MAX_RESULT_LENGTH.toLocaleString() + ' characters. Use a shorter replacement or smaller input.');
+    }
+  }
+
   function replace(regex, text, replacement, all) {
     if (!(regex instanceof RegExp)) return text;
     if (typeof text !== 'string') text = String(text == null ? '' : text);
     if (typeof replacement !== 'string') replacement = String(replacement == null ? '' : replacement);
     if (replacement.length > MAX_REPLACEMENT_LENGTH) throw new Error('Replacement is too long (maximum ' + MAX_REPLACEMENT_LENGTH.toLocaleString() + ' characters).');
     if (text.length > MAX_TEXT_LENGTH) throw new Error('Input text is too large (maximum ' + MAX_TEXT_LENGTH.toLocaleString() + ' characters).');
-    if (all === false) return text.replace(new RegExp(regex.source, regex.flags.replace(/g/g, '')), replacement);
-    const summary = findAll(regex, text, MAX_MATCHES);
-    const count = summary.truncated ? Math.min(text.length + 1, MAX_TEXT_LENGTH + 1) : summary.matches.length;
-    if (text.length + replacement.length * count > MAX_RESULT_LENGTH) {
-      throw new Error('Replacement result may exceed ' + MAX_RESULT_LENGTH.toLocaleString() + ' characters. Use a shorter replacement or smaller input.');
+
+    if (all === false) {
+      const first = findAll(regex, text, 1);
+      if (first.matches.length) assertSafeReplacementLength(text, replacement, first.matches);
+      return text.replace(new RegExp(regex.source, regex.flags.replace(/g/g, '')), replacement);
     }
+
+    const summary = findAll(regex, text, MAX_MATCHES);
+    if (summary.truncated) {
+      throw new Error('Replacement stopped because the match limit (' + MAX_MATCHES.toLocaleString() + ') was reached. Narrow the pattern or reduce the input text.');
+    }
+    assertSafeReplacementLength(text, replacement, summary.matches);
     const flags = regex.flags.includes('g') ? regex.flags : regex.flags + 'g';
     return text.replace(new RegExp(regex.source, flags), replacement);
   }
-
   function split(regex, text, maxSegments) {
     if (typeof text !== 'string') text = String(text == null ? '' : text);
     if (text.length > MAX_TEXT_LENGTH) throw new Error('Input text is too large (maximum ' + MAX_TEXT_LENGTH.toLocaleString() + ' characters).');
