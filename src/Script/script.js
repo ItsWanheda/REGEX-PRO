@@ -727,7 +727,9 @@
   }, 800);
 
   function clearResults() {
-    dom.highlightedOutput.innerHTML = state.text ? escapeHtml(state.text) : '<div class="placeholder">Your matched text will appear here in real-time.</div>';
+    dom.highlightedOutput.innerHTML = state.text
+      ? renderPreview(state.text, [])
+      : '<div class="placeholder">Your matched text will appear here in real-time.</div>';
     dom.matchCount.textContent = '0 matches';
     dom.infoTotal.textContent = '0';
     dom.infoFirst.textContent = '—';
@@ -736,13 +738,23 @@
     dom.matchList.innerHTML = '';
   }
 
+  function renderPreview(text, matches) {
+    const preview = RegexCore.createPreview(text, matches);
+    const notice = preview.truncated
+      ? '<div class="empty-state" role="status" style="padding:12px"><p>Preview limited to the first ' +
+        formatNumber(preview.visibleLength) +
+        ' characters to keep the interface responsive. The original input remains unchanged.</p></div>'
+      : '';
+    return preview.html + notice;
+  }
+
   function renderHighlight() {
     if (state.text.length === 0 && state.matches.length === 0) {
       dom.highlightedOutput.innerHTML = '<div class="placeholder">Enter text to see matches highlighted.</div>';
       dom.matchCount.textContent = '0 matches';
       return;
     }
-    dom.highlightedOutput.innerHTML = RegexEngine.highlight(state.text, state.matches);
+    dom.highlightedOutput.innerHTML = renderPreview(state.text, state.matches);
     const n = state.matches.length;
     dom.matchCount.textContent = formatNumber(n) + (state.matchesTruncated ? '+ matches (truncated)' : ' match' + (n !== 1 ? 'es' : ''));
   }
