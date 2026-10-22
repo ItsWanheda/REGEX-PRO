@@ -52,6 +52,11 @@ test('duplicate and incompatible flags fail with an explicit validation error', 
   assert.equal(RegexCore.compile('a', 'gq').regex, null);
 });
 
+test('invalid flags are validated even when the pattern is empty', () => {
+  assert.match(RegexCore.compile('', 'gg').error, /Duplicate/);
+  assert.equal(RegexCore.compile('', 'g').error, null);
+});
+
 test('match caps report partial results instead of silently truncating', () => {
   const compiled = RegexCore.compile('a', 'g');
   const found = RegexCore.findAll(compiled.regex, 'a'.repeat(11), 10);
@@ -107,4 +112,32 @@ test('replacement and split preserve expected semantics with bounded results', (
   const compiled = RegexCore.compile('(\\w+)', 'g');
   assert.equal(RegexCore.replace(compiled.regex, 'one two', '<$1>', true), '<one> <two>');
   assert.deepEqual(RegexCore.split(compiled.regex, 'one two', 10), ['', 'one', ' ', 'two', '']);
+});
+
+
+test('split truncation is only reported when the result exceeds the cap', () => {
+  const compiled = RegexCore.compile(',', 'g');
+  const exactLimitText = Array(RegexCore.MAX_SEGMENTS).fill('x').join(',');
+  const overLimitText = Array(RegexCore.MAX_SEGMENTS + 1).fill('x').join(',');
+
+  const exact = RegexCore.splitSummary(compiled.regex, exactLimitText, RegexCore.MAX_SEGMENTS);
+  assert.equal(exact.segments.length, RegexCore.MAX_SEGMENTS);
+  assert.equal(exact.truncated, false);
+
+  const over = RegexCore.splitSummary(compiled.regex, overLimitText, RegexCore.MAX_SEGMENTS);
+  assert.equal(over.segments.length, RegexCore.MAX_SEGMENTS);
+  assert.equal(over.truncated, true);
+});
+
+test('large text highlight previews are bounded and safely escaped', () => {
+  const text = 'a'.repeat(1000) + '<img src=x onerror=alert(1)>';
+  const compiled = RegexCore.compile('a', 'g');
+  const found = RegexCore.findAll(compiled.regex, text);
+  const preview = RegexCore.createPreview(text, found.matches, 1000);
+
+  assert.equal(found.matches.length, 1000);
+  assert.equal(preview.visibleLength, 1000);
+  assert.equal(preview.truncated, true);
+  assert.match(preview.html, /<mark class="match">a<\/mark>/);
+  assert.doesNotMatch(preview.html, /<img/);
 });
