@@ -554,7 +554,7 @@
 
   const Favorites = {
     load() { state.favorites = RegexCore.normalizeStoredList(Storage.get(Storage.KEYS.FAVORITES, []), 100); },
-    save() { Storage.set(Storage.KEYS.FAVORITES, state.favorites); },
+    save() { Storage.set(Storage.KEYS.FAVORITES, state.favorites.slice(0, 100)); },
     toggle(pattern, flags) {
       if (!pattern) { Toast.warning('Nothing to favorite'); return; }
       const idx = state.favorites.findIndex(f => f.pattern === pattern);
@@ -563,6 +563,7 @@
         Toast.info('Removed from favorites');
       } else {
         state.favorites.unshift({ pattern, flags, ts: getTimestamp() });
+        state.favorites = state.favorites.slice(0, 100);
         Toast.success('Added to favorites ⭐');
       }
       this.save();
@@ -1016,7 +1017,7 @@
         return;
       }
       dom.regexInput.value = '';
-      dom.flagsInput.value = '';
+      dom.flagsInput.value = 'g';
       dom.testString.value = '';
       dom.replaceInput.value = '';
       dom.flagToggles.forEach(t => { if (t.dataset.flag === 'g') t.checked = true; else t.checked = false; });
@@ -1369,31 +1370,26 @@
     const savedReplace = Storage.get(Storage.KEYS.REPLACE, '');
     const savedWidth = Storage.get(Storage.KEYS.WIDTH, 320);
 
-    if (savedWidth) {
-      dom.sidebar.style.width = savedWidth + 'px';
-      state.sidebarWidth = savedWidth;
+    if (typeof savedWidth === 'number' && Number.isFinite(savedWidth)) {
+      state.sidebarWidth = Math.min(Math.max(savedWidth, 250), 550);
+      dom.sidebar.style.width = state.sidebarWidth + 'px';
     }
 
     // Restore UI values
-    if (savedPattern) {
+    if (typeof savedPattern === 'string') {
       dom.regexInput.value = savedPattern;
       state.pattern = savedPattern;
       lastSavedPattern = savedPattern;
     }
-    if (savedFlags) {
+    if (typeof savedFlags === 'string') {
       dom.flagsInput.value = savedFlags;
-      // Sync toggles
-      dom.flagToggles.forEach(input => {
-        input.checked = savedFlags.includes(input.dataset.flag);
-      });
+      dom.flagToggles.forEach(input => { input.checked = savedFlags.includes(input.dataset.flag); });
     } else {
-      dom.flagToggles.forEach(input => {
-        input.checked = input.dataset.flag === 'g';
-      });
+      dom.flagToggles.forEach(input => { input.checked = input.dataset.flag === 'g'; });
       dom.flagsInput.value = 'g';
     }
-    if (savedText) dom.testString.value = savedText;
-    if (savedReplace) dom.replaceInput.value = savedReplace;
+    if (typeof savedText === 'string') dom.testString.value = savedText;
+    if (typeof savedReplace === 'string') dom.replaceInput.value = savedReplace;
 
     // Initial render
     renderCheatsheet();
