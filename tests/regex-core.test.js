@@ -130,14 +130,15 @@ test('split truncation is only reported when the result exceeds the cap', () => 
 });
 
 test('large text highlight previews are bounded and safely escaped', () => {
-  const text = 'a'.repeat(1000) + '<img src=x onerror=alert(1)>';
-  const compiled = RegexCore.compile('a', 'g');
+  const text = 'a'.repeat(500) + '<img src=x onerror=alert(1)>' + 'b'.repeat(1000);
+  const compiled = RegexCore.compile('^a{500}', 'g');
   const found = RegexCore.findAll(compiled.regex, text);
-  const preview = RegexCore.createPreview(text, found.matches, 1000);
+  const preview = RegexCore.createPreview(text, found.matches, 600);
 
-  assert.equal(found.matches.length, 1000);
-  assert.equal(preview.visibleLength, 1000);
+  assert.equal(found.matches.length, 1);
+  assert.equal(preview.visibleLength, 600);
   assert.equal(preview.truncated, true);
-  assert.match(preview.html, /<mark class="match">a<\/mark>/);
+  assert.match(preview.html, /<mark class="match">a{500}<\/mark>/);
   assert.doesNotMatch(preview.html, /<img/);
+  assert.match(preview.html, /&lt;img/);
 });
