@@ -24,7 +24,7 @@ Built with pure HTML, CSS & JavaScript — zero dependencies, zero backend, zero
 ### 🎯 Core Engine
 - ⚡ **Live matching** as you type — instant feedback, no submit button
 - 🎨 **Highlighted matches** with distinct colors for capture groups (supports 6+ groups)
-- 🏁 **Flag toggles** for `g`, `i`, `m`, `s`, `u`, `y` plus text input
+- 🏁 **Flag toggles** for `d`, `g`, `i`, `m`, `s`, `u`, `v`, `y` plus text input (where supported by the browser)
 - 📊 **Detailed match info** — positions, lengths, captured & named groups
 - ❌ **Friendly error messages** for invalid regex patterns
 - 🛡️ **Worker-isolated execution** with a 2.5-second timeout and a manual Stop control
