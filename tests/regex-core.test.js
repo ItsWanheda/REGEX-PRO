@@ -77,7 +77,8 @@ test('untrusted user text is HTML-escaped in highlighted output', () => {
   const found = RegexCore.findAll(compiled.regex, input);
   const html = RegexCore.highlight(input, found.matches);
   assert.equal(html.includes('<img'), false);
-  assert.match(html, /&lt;img/);
+  assert.match(html, /&lt;<\/mark>/);
+  assert.doesNotMatch(html, /<img/);
 });
 
 test('malformed or hostile persistence data is normalized safely', () => {
