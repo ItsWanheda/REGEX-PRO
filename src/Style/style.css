@@ -841,6 +841,18 @@ input, textarea {
   color: #fca5a5;
 }
 
+.status-pill.pending {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #c7d2fe;
+}
+
+.status-pill.warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+}
+
 /* ---------- Textarea ---------- */
 .textarea-wrapper {
   position: relative;
