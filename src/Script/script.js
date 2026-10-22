@@ -15,6 +15,7 @@
     matches: [],
     matchesTruncated: false,
     evaluationId: 0,
+    metaText: null,
     history: [],
     favorites: [],
     activeTab: 'cheatsheet',
@@ -835,10 +836,27 @@
 
   function updateTextMeta() {
     const text = state.text;
-    dom.charCount.textContent = `${formatNumber(text.length)} characters`;
-    dom.lineCount.textContent = `${formatNumber(text.split('\n').length)} line${text.split('\n').length !== 1 ? 's' : ''}`;
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-    dom.wordCount.textContent = `${formatNumber(words)} word${words !== 1 ? 's' : ''}`;
+    if (text === state.metaText) return;
+    state.metaText = text;
+
+    let lines = 1;
+    let words = 0;
+    let inWord = false;
+    const isWhitespace = /\\s/;
+    for (let i = 0; i < text.length; i++) {
+      const character = text[i];
+      if (character === '\n') lines++;
+      if (isWhitespace.test(character)) {
+        inWord = false;
+      } else if (!inWord) {
+        words++;
+        inWord = true;
+      }
+    }
+
+    dom.charCount.textContent = formatNumber(text.length) + ' characters';
+    dom.lineCount.textContent = formatNumber(lines) + ' line' + (lines !== 1 ? 's' : '');
+    dom.wordCount.textContent = formatNumber(words) + ' word' + (words !== 1 ? 's' : '');
   }
 
   function showError(msg) {
