@@ -18,3 +18,12 @@
 ## Verification
 
 Run `npm test` with Node.js 18 or later. GitHub Actions runs the same suite on pushes and pull requests. Treat the latest workflow result as the test pass/fail status; checkmarks above track coverage, not successful execution.
+
+
+## Additional hardening assertions
+
+- [x] Empty patterns still validate duplicate and incompatible flags.
+- [x] Split output at exactly the configured cap is not incorrectly marked as truncated.
+- [x] Large highlighted previews are bounded and user-controlled HTML remains escaped.
+
+These additional assertions complement the ten original checklist scenarios.
