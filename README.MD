@@ -8,7 +8,7 @@ Built with pure HTML, CSS & JavaScript — zero dependencies, zero backend, zero
 
 [**Live Demo**](#) · [**Report Bug**](../../issues) · [**Request Feature**](../../issues)
 
-![Version](https://img.shields.io/badge/version-1.0.0-667eea?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.1.0-667eea?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-10b981?style=for-the-badge)
 ![No Dependencies](https://img.shields.io/badge/dependencies-zero-f472b6?style=for-the-badge)
 ![Vanilla JS](https://img.shields.io/badge/JS-vanilla-yellow?style=for-the-badge)
@@ -24,9 +24,12 @@ Built with pure HTML, CSS & JavaScript — zero dependencies, zero backend, zero
 ### 🎯 Core Engine
 - ⚡ **Live matching** as you type — instant feedback, no submit button
 - 🎨 **Highlighted matches** with distinct colors for capture groups (supports 6+ groups)
-- 🏁 **Flag toggles** for `g`, `i`, `m`, `s`, `u`, `y` plus text input
+- 🏁 **Flag toggles** for `d`, `g`, `i`, `m`, `s`, `u`, `v`, `y` plus text input (where supported by the browser)
 - 📊 **Detailed match info** — positions, lengths, captured & named groups
 - ❌ **Friendly error messages** for invalid regex patterns
+- 🛡️ **Worker-isolated execution** with a 2.5-second timeout and a manual Stop control
+- 🧯 **Resource limits** for pattern length, text size, matches, split segments, and replacement output
+- 🧩 **Correct capture offsets** and Unicode-safe zero-width match advancement
 - 📱 **100% responsive** — works beautifully on mobile, tablet & desktop
 
 ### 🛠️ Developer Tools
@@ -39,6 +42,7 @@ Built with pure HTML, CSS & JavaScript — zero dependencies, zero backend, zero
 ### 💾 Persistence
 - 🕒 **History** — last 20 patterns auto-saved to `localStorage`
 - ⭐ **Favorites** — star your best patterns for quick access
+- 🧹 **Validated stored state** — malformed history and favorites are normalized before rendering
 - 💿 **Auto-save** — your work persists across page reloads
 - 📂 **Drag & drop** text files (up to 5MB) directly into the editor
 
@@ -52,34 +56,27 @@ Built with pure HTML, CSS & JavaScript — zero dependencies, zero backend, zero
 
 ## 🚀 Quick Start
 
-### Option 1: Direct Open
+**Use a local HTTP server.** Regex Pro evaluates patterns inside a Web Worker; opening `index.html` directly with `file://` can prevent the worker and shared core from loading.
+
 ```bash
 # Clone the repository
 git clone https://github.com/ItsWanheda/regex-pro.git
-
-# Navigate to the folder
 cd regex-pro
 
-# Open in your browser
-open index.html        # macOS
-xdg-open index.html    # Linux
-start index.html       # Windows
-```
-### Option 2: Local Server (Recommended)
-```bash
-# Using Python 3
+# Python 3 (built-in; no dependencies)
 python -m http.server 8000
+```
+Then visit http://localhost:8000/src/
 
-# Using Node.js
+### Alternative static servers
+
+```bash
+# Node.js
 npx serve .
 
-# Using PHP
+# PHP
 php -S localhost:8000
 ```
-Then visit http://localhost:8000
-> A local server is recommended to enable drag-and-drop and avoid any browser file-protocol restrictions.
-
----
 
 ## 🎹 Keyboard Shortcuts
 
@@ -129,6 +126,27 @@ Then visit http://localhost:8000
 | Chrome Android | 90+ |
 
 > Uses the modern RegExp d flag for indices. Fallback gracefully omits nested group highlighting on older browsers.
+
+---
+
+## 🧪 Automated Tests
+
+The project keeps zero runtime dependencies. With Node.js 18 or later installed, run:
+
+```bash
+npm test
+```
+
+The regression suite covers capture offsets, named and unmatched groups, zero-width and Unicode behavior, flag validation, partial-result warnings, worker timeout termination, HTML escaping, persistence recovery, replacement, and split behavior. GitHub Actions runs the suite on pushes and pull requests. See the [regression checklist](./docs/REGRESSION_CHECKLIST.md) for the full scenario list.
+
+### Safety limits
+- Pattern: 10,000 characters maximum
+- Test text: 5,000,000 characters maximum
+- Matches and split segments: 50,000 each
+- Replacement input: 10,000 characters maximum
+- Worker evaluation timeout: 2.5 seconds for UI operations
+
+A timeout terminates the worker so pathological patterns cannot indefinitely block the page's main thread. These limits reduce resource-exhaustion risk but cannot guarantee every pattern will finish within the time budget.
 
 ---
 

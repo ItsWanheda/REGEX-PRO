@@ -13,6 +13,9 @@
     flags: 'g',
     text: '',
     matches: [],
+    matchesTruncated: false,
+    evaluationId: 0,
+    metaText: null,
     history: [],
     favorites: [],
     activeTab: 'cheatsheet',
@@ -59,6 +62,7 @@
     toastContainer: document.getElementById('toast-container'),
     helpModal: document.getElementById('helpModal'),
     downloadMenu: document.getElementById('downloadMenu'),
+    stopRegexButton: document.getElementById('stopRegexButton'),
   };
 
   /* =====================================================
@@ -196,140 +200,13 @@
   /* =====================================================
      6. REGEX ENGINE
      ===================================================== */
+  const RegexCore = window.RegexCore;
+  const RegexWorker = window.RegexWorkerClient.create(
+    new URL('./regex-worker.js', document.currentScript ? document.currentScript.src : window.location.href)
+  );
   const RegexEngine = {
-    /** Compile a regex; returns {regex, error} */
-    compile(pattern, flags) {
-      if (!pattern) return { regex: null, error: null };
-      try {
-        const regex = new RegExp(pattern, flags);
-        return { regex, error: null };
-      } catch (e) {
-        return { regex: null, error: e.message };
-      }
-    },
-
-    /** Find all matches in text */
-    findAll(regex, text) {
-      if (!regex || !text) return [];
-
-      const matches = [];
-      // Ensure 'd' flag for indices where available
-      let execFlags = regex.flags;
-      if (!execFlags.includes('g')) execFlags += 'g';
-
-      const supportsIndices = (() => {
-        try { return 'indices' in RegExp.prototype.exec(new RegExp('x', 'd')); }
-        catch (e) { return false; }
-      })();
-
-      if (supportsIndices && !execFlags.includes('d')) execFlags += 'd';
-
-      let execRegex;
-      try { execRegex = new RegExp(regex.source, execFlags); }
-      catch (e) { return []; }
-
-      let match;
-      let iterations = 0;
-      const maxIterations = 50000;
-
-      while ((match = execRegex.exec(text)) !== null && iterations < maxIterations) {
-        iterations++;
-        const entry = {
-          full: match,
-          index: match.index,
-          end: match.index + match.length,
-          groups: match.slice(1),
-          namedGroups: match.groups || {},
-          indices: match.indices || null,
-        };
-        matches.push(entry);
-
-        if (match.length === 0) execRegex.lastIndex++; // prevent infinite loop on zero-width
-      }
-      return matches;
-    },
-
-    /** Highlight matches in text */
-    highlight(text, regex) {
-      if (!text) return '';
-      if (!regex) return escapeHtml(text);
-
-      const matches = this.findAll(regex, text);
-      if (matches.length === 0) return escapeHtml(text);
-
-      let html = '';
-      let lastIndex = 0;
-
-      matches.forEach((m) => {
-        html += escapeHtml(text.slice(lastIndex, m.index));
-
-        if (m.indices && m.indices.length > 1) {
-          // Build nested group highlighting using indices
-          const groupSpans = [];
-          for (let g = 1; g < m.indices.length; g++) {
-            const idx = m.indices[g];
-            if (idx && idx !== idx) {
-              groupSpans.push({
-                start: idx - m.index,
-                end: idx - m.index,
-                group: g,
-              });
-            }
-          }
-          groupSpans.sort((a, b) => a.start - b.start || b.end - a.end);
-
-          // Compute deepest group level per character
-          const charLevel = new Array(m.full.length).fill(0);
-          for (const span of groupSpans) {
-            for (let k = Math.max(0, span.start); k < Math.min(m.full.length, span.end); k++) {
-              if (span.group > charLevel[k]) charLevel[k] = span.group;
-            }
-          }
-
-          // Render with level transitions
-          let cur = 0, buf = '';
-          for (let k = 0; k < m.full.length; k++) {
-            if (charLevel[k] !== cur) {
-              html += cur === 0 ? escapeHtml(buf) :
-                `<span class="group group-${((cur - 1) % 6) + 2}">${escapeHtml(buf)}</span>`;
-              cur = charLevel[k];
-              buf = m.full[k];
-            } else {
-              buf += m.full[k];
-            }
-          }
-          html += cur === 0 ? escapeHtml(buf) :
-            `<span class="group group-${((cur - 1) % 6) + 2}">${escapeHtml(buf)}</span>`;
-          html = `<mark class="match">${html}</mark>`;
-        } else {
-          html += `<mark class="match">${escapeHtml(m.full)}</mark>`;
-        }
-
-        lastIndex = m.end;
-      });
-
-      html += escapeHtml(text.slice(lastIndex));
-      return html;
-    },
-
-    /** Replace all / first occurrence */
-    replace(regex, text, replacement, all = true) {
-      if (!regex || !text) return text;
-      try {
-        return all
-          ? text.replace(new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : regex.flags + 'g'), replacement)
-          : text.replace(regex, replacement);
-      } catch (e) { return text; }
-    },
-
-    /** Split text by regex */
-    split(regex, text) {
-      if (!text) return [];
-      if (!regex) return [text];
-      try {
-        return text.split(regex);
-      } catch (e) { return [text]; }
-    },
+    compile: RegexCore.compile,
+    highlight: RegexCore.highlight,
   };
 
   /* =====================================================
@@ -632,7 +509,7 @@
      11. HISTORY & FAVORITES
      ===================================================== */
   const History = {
-    load() { state.history = Storage.get(Storage.KEYS.HISTORY, []); },
+    load() { state.history = RegexCore.normalizeStoredList(Storage.get(Storage.KEYS.HISTORY, []), 20); },
     save() { Storage.set(Storage.KEYS.HISTORY, state.history.slice(0, 20)); },
     add(pattern, flags) {
       if (!pattern) return;
@@ -677,8 +554,8 @@
   };
 
   const Favorites = {
-    load() { state.favorites = Storage.get(Storage.KEYS.FAVORITES, []); },
-    save() { Storage.set(Storage.KEYS.FAVORITES, state.favorites); },
+    load() { state.favorites = RegexCore.normalizeStoredList(Storage.get(Storage.KEYS.FAVORITES, []), 100); },
+    save() { Storage.set(Storage.KEYS.FAVORITES, state.favorites.slice(0, 100)); },
     toggle(pattern, flags) {
       if (!pattern) { Toast.warning('Nothing to favorite'); return; }
       const idx = state.favorites.findIndex(f => f.pattern === pattern);
@@ -687,6 +564,7 @@
         Toast.info('Removed from favorites');
       } else {
         state.favorites.unshift({ pattern, flags, ts: getTimestamp() });
+        state.favorites = state.favorites.slice(0, 100);
         Toast.success('Added to favorites ⭐');
       }
       this.save();
@@ -766,55 +644,78 @@
   /* =====================================================
      13. MAIN UPDATE PIPELINE
      ===================================================== */
-  function update() {
+  async function update() {
+    const runId = ++state.evaluationId;
     state.pattern = dom.regexInput.value;
-    state.flags = dom.flagsInput.value || 'g';
+    state.flags = dom.flagsInput.value;
     state.text = dom.testString.value;
-
-    // Validate flags
-    const validFlags = /^[gimsuy]*$/;
-    if (!validFlags.test(state.flags)) {
-      showError('Invalid flags. Only g, i, m, s, u, y are allowed.');
-      setStatus('error', 'Invalid flags');
-      return;
-    }
-
-    // Update counts
     updateTextMeta();
 
-    // Empty pattern
     if (!state.pattern) {
+      RegexWorker.cancel('evaluate', 'Pattern cleared.');
+      RegexWorker.cancel('replace', 'Pattern cleared.');
+      state.matches = [];
+      state.matchesTruncated = false;
       clearResults();
       hideError();
       setStatus('', 'Ready');
       dom.explanation.innerHTML = '<div class="placeholder">Enter a pattern to see a human-readable explanation.</div>';
       dom.replacePreview.innerHTML = '<span class="placeholder">Replacement preview will appear here.</span>';
-      renderSplit([state.text]);
+      renderSplit(state.text, null, [state.text]);
+      dom.stopRegexButton.disabled = true;
       return;
     }
 
-    // Compile
-    const { regex, error } = RegexEngine.compile(state.pattern, state.flags);
-    if (error) {
-      showError(error);
+    const compiled = RegexEngine.compile(state.pattern, state.flags);
+    if (compiled.error) {
+      RegexWorker.cancel('evaluate', 'Invalid pattern.');
+      RegexWorker.cancel('replace', 'Invalid pattern.');
+      state.matches = [];
+      state.matchesTruncated = false;
+      showError(compiled.error);
       setStatus('error', 'Invalid regex');
       clearResults();
+      dom.explanation.innerHTML = Explainer.render(state.pattern);
+      dom.replacePreview.innerHTML = '<span class="placeholder">Fix regex errors first.</span>';
+      renderSplit(state.text, null, [state.text]);
+      dom.stopRegexButton.disabled = true;
       return;
     }
 
     hideError();
-    setStatus('ok', `${regex.flags} flag${regex.flags.length > 1 ? 's' : ''}`.replace(/^$/, 'No flags'));
+    dom.stopRegexButton.disabled = false;
+    setStatus('pending', 'Evaluating…');
+    try {
+      const result = await RegexWorker.run({
+        op: 'evaluate', pattern: state.pattern, flags: state.flags,
+        text: state.text, replacement: dom.replaceInput.value
+      }, { channel: 'evaluate', timeoutMs: 2500 });
 
-    // Find matches
-    state.matches = RegexEngine.findAll(regex, state.text);
-    renderHighlight(regex);
-    renderMatchInfo(regex);
-    renderExplanation();
-    renderReplace();
-    renderSplit(state.text, regex);
-
-    // Add to history (debounced by pattern change)
-    debouncedHistory();
+      if (runId !== state.evaluationId) return;
+      state.matches = result.matches || [];
+      state.matchesTruncated = Boolean(result.truncated);
+      hideError();
+      dom.stopRegexButton.disabled = true;
+      setStatus(state.matchesTruncated ? 'warning' : 'ok',
+        formatNumber(state.matches.length) + (state.matchesTruncated ? '+ matches (limit reached)' : ' match' + (state.matches.length !== 1 ? 'es' : '')));
+      renderHighlight();
+      renderMatchInfo();
+      renderExplanation();
+      renderReplace(result.replaceResult, true);
+      renderSplit(state.text, compiled.regex, result.segments || [], result.segmentsTruncated);
+      debouncedHistory();
+    } catch (error) {
+      if (runId !== state.evaluationId || error.code === 'CANCELLED') return;
+      state.matches = [];
+      state.matchesTruncated = false;
+      dom.stopRegexButton.disabled = true;
+      showError(error && error.message ? error.message : 'Regex evaluation failed.');
+      setStatus('error', error && error.code === 'REGEX_TIMEOUT' ? 'Stopped (timeout)' : 'Evaluation error');
+      clearResults();
+      dom.explanation.innerHTML = Explainer.render(state.pattern);
+      dom.replacePreview.innerHTML = '<span class="placeholder">Evaluation could not be completed.</span>';
+      renderSplit(state.text, null, [state.text]);
+    }
   }
 
   let lastSavedPattern = '';
@@ -835,87 +736,81 @@
     dom.matchList.innerHTML = '';
   }
 
-  function renderHighlight(regex) {
-    if (!state.text) {
+  function renderHighlight() {
+    if (state.text.length === 0 && state.matches.length === 0) {
       dom.highlightedOutput.innerHTML = '<div class="placeholder">Enter text to see matches highlighted.</div>';
       dom.matchCount.textContent = '0 matches';
       return;
     }
-    if (state.matches.length === 0) {
-      dom.highlightedOutput.innerHTML = escapeHtml(state.text);
-      dom.matchCount.textContent = '0 matches';
-      return;
-    }
-    dom.highlightedOutput.innerHTML = RegexEngine.highlight(state.text, regex);
+    dom.highlightedOutput.innerHTML = RegexEngine.highlight(state.text, state.matches);
     const n = state.matches.length;
-    dom.matchCount.textContent = `${formatNumber(n)} match${n !== 1 ? 'es' : ''}`;
+    dom.matchCount.textContent = formatNumber(n) + (state.matchesTruncated ? '+ matches (truncated)' : ' match' + (n !== 1 ? 'es' : ''));
   }
 
-  function renderMatchInfo(regex) {
+  function renderMatchInfo() {
     const n = state.matches.length;
-    dom.infoTotal.textContent = formatNumber(n);
-    dom.infoPattern.textContent = `/${state.pattern}/${state.flags}`;
-
+    dom.infoTotal.textContent = formatNumber(n) + (state.matchesTruncated ? '+' : '');
+    dom.infoPattern.textContent = '/' + state.pattern + '/' + state.flags;
     if (n === 0) {
       dom.infoFirst.textContent = '—';
       dom.infoLast.textContent = '—';
-      dom.matchList.innerHTML = `<div class="empty-state" style="padding:20px"><p>No matches found.</p></div>`;
+      dom.matchList.innerHTML = '<div class="empty-state" style="padding:20px"><p>No matches found.</p></div>';
       return;
     }
-
-    const first = state.matches;
+    const first = state.matches[0];
     const last = state.matches[n - 1];
     dom.infoFirst.textContent = truncate(first.full, 30);
     dom.infoLast.textContent = truncate(last.full, 30);
 
     dom.matchList.innerHTML = state.matches.slice(0, 100).map((m, i) => {
       const groupsHtml = m.groups.length > 0
-        ? `<div class="match-groups">${m.groups.map((g, gi) => `
-            <div class="group-row">
-              <span class="g-label">Group ${gi + 1}:</span>
-              <span class="${g === undefined ? 'g-empty' : 'g-value'}">${g === undefined ? '(not matched)' : escapeHtml(truncate(g, 80))}</span>
-            </div>`).join('')}
-            ${Object.keys(m.namedGroups).length > 0 ? Object.entries(m.namedGroups).map(([k, v]) => `
-              <div class="group-row">
-                <span class="g-label">${escapeHtml(k)}:</span>
-                <span class="${v === undefined ? 'g-empty' : 'g-value'}">${v === undefined ? '(not matched)' : escapeHtml(truncate(v, 80))}</span>
-              </div>`).join('') : ''}
-          </div>`
+        ? '<div class="match-groups">' + m.groups.map((g, gi) => (
+            '<div class="group-row"><span class="g-label">Group ' + (gi + 1) + ':</span>' +
+            '<span class="' + (g === undefined ? 'g-empty' : 'g-value') + '">' +
+            (g === undefined ? '(not matched)' : escapeHtml(truncate(g, 80))) + '</span></div>'
+          )).join('') +
+          (Object.keys(m.namedGroups).length > 0 ? Object.entries(m.namedGroups).map(([k, v]) => (
+            '<div class="group-row"><span class="g-label">' + escapeHtml(k) + ':</span>' +
+            '<span class="' + (v === undefined ? 'g-empty' : 'g-value') + '">' +
+            (v === undefined ? '(not matched)' : escapeHtml(truncate(v, 80))) + '</span></div>'
+          )).join('') : '') + '</div>'
         : '';
-
-      return `
-        <div class="match-card">
-          <div class="match-header">
-            <span class="match-num">#${i + 1}</span>
-            <span class="match-pos">pos ${m.index}–${m.end} · length ${m.full.length}</span>
-          </div>
-          <div class="match-text">${escapeHtml(truncate(m.full, 200))}</div>
-          ${groupsHtml}
-        </div>`;
-    }).join('') + (n > 100 ? `<div class="empty-state" style="padding:12px"><p>Showing first 100 of ${formatNumber(n)} matches.</p></div>` : '');
+      return '<div class="match-card"><div class="match-header">' +
+        '<span class="match-num">#' + (i + 1) + '</span>' +
+        '<span class="match-pos">pos ' + m.index + '–' + m.end + ' · length ' + m.full.length + '</span></div>' +
+        '<div class="match-text">' + escapeHtml(truncate(m.full, 200)) + '</div>' + groupsHtml + '</div>';
+    }).join('') +
+      (n > 100 ? '<div class="empty-state" style="padding:12px"><p>Showing first 100 of ' + formatNumber(n) + ' matches.</p></div>' : '') +
+      (state.matchesTruncated ? '<div class="empty-state" style="padding:12px"><p>Match cap reached. Additional matches may exist.</p></div>' : '');
   }
 
   function renderExplanation() {
     dom.explanation.innerHTML = Explainer.render(state.pattern);
   }
 
-  function renderReplace() {
+  async function renderReplace(precomputedResult, isPrecomputed) {
+    const pattern = state.pattern, flags = state.flags, text = state.text;
     const replacement = dom.replaceInput.value;
-    if (!state.pattern) {
+    if (!pattern) {
       dom.replacePreview.innerHTML = '<span class="placeholder">Replacement preview will appear here.</span>';
       return;
     }
-    const { regex, error } = RegexEngine.compile(state.pattern, state.flags);
-    if (error) {
-      dom.replacePreview.innerHTML = '<span class="placeholder">Fix regex errors first.</span>';
-      return;
+    let result = precomputedResult;
+    if (!isPrecomputed) {
+      try {
+        const response = await RegexWorker.run({
+          op: 'replace', pattern: pattern, flags: flags, text: text,
+          replacement: replacement, all: true
+        }, { channel: 'replace', timeoutMs: 2500 });
+        if (pattern !== state.pattern || flags !== state.flags || text !== state.text || replacement !== dom.replaceInput.value) return;
+        result = response.replaceResult;
+      } catch (error) {
+        if (error.code !== 'CANCELLED') dom.replacePreview.textContent = error.message || 'Replacement preview failed.';
+        return;
+      }
     }
-    if (!state.text) {
-      dom.replacePreview.innerHTML = '<span class="placeholder">Enter text to preview replacement.</span>';
-      return;
-    }
-    const result = RegexEngine.replace(regex, state.text, replacement, true);
-    if (result === state.text && state.matches.length > 0 && replacement !== '') {
+    if (typeof result !== 'string') return;
+    if (result === text && state.matches.length > 0 && replacement !== '') {
       dom.replacePreview.innerHTML = escapeHtml(result) + ' <em style="color:var(--text-dim);font-size:11px">(no change)</em>';
     } else {
       dom.replacePreview.innerHTML = escapeHtml(result) || '<em style="color:var(--text-dim)">(empty)</em>';
@@ -923,25 +818,45 @@
     state.lastResult = result;
   }
 
-  function renderSplit(text, regex) {
+  function renderSplit(text, regex, suppliedSegments, segmentsTruncated) {
     if (!regex) {
       dom.splitResult.innerHTML = '<div class="placeholder">Enter a pattern to split text.</div>';
       dom.splitCount.textContent = '0 segments';
       return;
     }
-    const segments = RegexEngine.split(regex, text);
-    dom.splitCount.textContent = `${formatNumber(segments.length)} segment${segments.length !== 1 ? 's' : ''}`;
-    dom.splitResult.innerHTML = segments.map((s, i) =>
-      `<div class="split-segment ${s === '' ? 'empty' : ''}"><span class="seg-idx">#${i + 1}</span>${s === '' ? '(empty)' : escapeHtml(truncate(s, 100))}</div>`
-    ).join('');
+    const segments = Array.isArray(suppliedSegments) ? suppliedSegments : [];
+    dom.splitCount.textContent = formatNumber(segments.length) +
+      (segments.length !== 1 ? ' segments' : ' segment') + (segmentsTruncated ? ' (truncated)' : '');
+    dom.splitResult.innerHTML = segments.map((segment, i) =>
+      '<div class="split-segment ' + (segment === '' ? 'empty' : '') + '">' +
+      '<span class="seg-idx">#' + (i + 1) + '</span>' +
+      (segment === '' ? '(empty)' : escapeHtml(truncate(segment, 100))) + '</div>'
+    ).join('') + (segmentsTruncated ? '<div class="empty-state" style="padding:12px"><p>Split output limited to the first 50,000 segments.</p></div>' : '');
   }
 
   function updateTextMeta() {
     const text = state.text;
-    dom.charCount.textContent = `${formatNumber(text.length)} characters`;
-    dom.lineCount.textContent = `${formatNumber(text.split('\n').length)} line${text.split('\n').length !== 1 ? 's' : ''}`;
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-    dom.wordCount.textContent = `${formatNumber(words)} word${words !== 1 ? 's' : ''}`;
+    if (text === state.metaText) return;
+    state.metaText = text;
+
+    let lines = 1;
+    let words = 0;
+    let inWord = false;
+    const isWhitespace = /\s/;
+    for (let i = 0; i < text.length; i++) {
+      const character = text[i];
+      if (character === '\n') lines++;
+      if (isWhitespace.test(character)) {
+        inWord = false;
+      } else if (!inWord) {
+        words++;
+        inWord = true;
+      }
+    }
+
+    dom.charCount.textContent = formatNumber(text.length) + ' characters';
+    dom.lineCount.textContent = formatNumber(lines) + ' line' + (lines !== 1 ? 's' : '');
+    dom.wordCount.textContent = formatNumber(words) + ' word' + (words !== 1 ? 's' : '');
   }
 
   function showError(msg) {
@@ -1054,32 +969,61 @@
       closeDownloadMenu();
     },
 
-    replaceFirst() {
+    async replaceFirst() {
       if (!state.pattern) { Toast.warning('Enter a regex first'); return; }
-      const { regex, error } = RegexEngine.compile(state.pattern, state.flags);
-      if (error) { Toast.error(error); return; }
-      const result = RegexEngine.replace(regex, state.text, dom.replaceInput.value, false);
-      state.lastResult = result;
-      dom.replacePreview.innerHTML = escapeHtml(result) || '<em style="color:var(--text-dim)">(empty)</em>';
-      Toast.info('First occurrence replaced in preview');
+      const compiled = RegexEngine.compile(state.pattern, state.flags);
+      if (compiled.error) { Toast.error(compiled.error); return; }
+      try {
+        const response = await RegexWorker.run({
+          op: 'replace', pattern: state.pattern, flags: state.flags, text: state.text,
+          replacement: dom.replaceInput.value, all: false
+        }, { channel: 'action-replace-first', timeoutMs: 2500 });
+        state.lastResult = response.replaceResult;
+        dom.replacePreview.innerHTML = escapeHtml(response.replaceResult) || '<em style="color:var(--text-dim)">(empty)</em>';
+        Toast.info('First occurrence replaced in preview');
+      } catch (error) { Toast.error(error.message || 'Replacement failed'); }
     },
 
-    replaceAll() {
+    async replaceAll() {
       if (!state.pattern) { Toast.warning('Enter a regex first'); return; }
-      const { regex, error } = RegexEngine.compile(state.pattern, state.flags);
-      if (error) { Toast.error(error); return; }
-      renderReplace();
-      Toast.success('Preview updated');
+      const compiled = RegexEngine.compile(state.pattern, state.flags);
+      if (compiled.error) { Toast.error(compiled.error); return; }
+      try {
+        const response = await RegexWorker.run({
+          op: 'replace', pattern: state.pattern, flags: state.flags, text: state.text,
+          replacement: dom.replaceInput.value, all: true
+        }, { channel: 'action-replace-all', timeoutMs: 2500 });
+        state.lastResult = response.replaceResult;
+        dom.replacePreview.innerHTML = escapeHtml(response.replaceResult) || '<em style="color:var(--text-dim)">(empty)</em>';
+        Toast.success('Preview updated');
+      } catch (error) { Toast.error(error.message || 'Replacement failed'); }
     },
 
-    applyReplace() {
+    async applyReplace() {
       if (!state.pattern) { Toast.warning('Enter a regex first'); return; }
-      const { regex, error } = RegexEngine.compile(state.pattern, state.flags);
-      if (error) { Toast.error(error); return; }
-      const result = RegexEngine.replace(regex, state.text, dom.replaceInput.value, true);
-      dom.testString.value = result;
-      update();
-      Toast.success('Replacement applied to text');
+      const compiled = RegexEngine.compile(state.pattern, state.flags);
+      if (compiled.error) { Toast.error(compiled.error); return; }
+      try {
+        const response = await RegexWorker.run({
+          op: 'replace', pattern: state.pattern, flags: state.flags, text: state.text,
+          replacement: dom.replaceInput.value, all: true
+        }, { channel: 'action-apply-replace', timeoutMs: 2500 });
+        dom.testString.value = response.replaceResult;
+        await update();
+        Toast.success('Replacement applied to text');
+      } catch (error) { Toast.error(error.message || 'Replacement failed'); }
+    },
+
+    stopRegex() {
+      state.evaluationId++;
+      RegexWorker.cancel('evaluate', 'Stopped by user.');
+      RegexWorker.cancel('replace', 'Stopped by user.');
+      dom.stopRegexButton.disabled = true;
+      state.matches = [];
+      state.matchesTruncated = false;
+      clearResults();
+      showError('Regex evaluation stopped.');
+      setStatus('error', 'Stopped');
     },
 
     clearAll() {
@@ -1088,7 +1032,7 @@
         return;
       }
       dom.regexInput.value = '';
-      dom.flagsInput.value = '';
+      dom.flagsInput.value = 'g';
       dom.testString.value = '';
       dom.replaceInput.value = '';
       dom.flagToggles.forEach(t => { if (t.dataset.flag === 'g') t.checked = true; else t.checked = false; });
@@ -1142,10 +1086,10 @@
      ===================================================== */
   function bindEvents() {
     // Regex inputs
-    dom.regexInput.addEventListener('input', update);
+    dom.regexInput.addEventListener('input', debounce(update, 80));
     dom.flagsInput.addEventListener('input', () => {
       // Strip invalid chars
-      dom.flagsInput.value = dom.flagsInput.value.replace(/[^gimsuy]/g, '');
+      dom.flagsInput.value = dom.flagsInput.value.replace(/[^dgimsuvy]/g, '');
       // Sync toggles
       const f = dom.flagsInput.value;
       dom.flagToggles.forEach(input => { input.checked = f.includes(input.dataset.flag); });
@@ -1166,7 +1110,7 @@
 
     // File upload
     dom.fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files;
+      const file = e.target.files && e.target.files[0];
       if (!file) return;
       await loadFile(file);
       dom.fileInput.value = '';
@@ -1202,7 +1146,7 @@
       e.preventDefault();
       dragCounter = 0;
       dropOverlay.classList.remove('active');
-      const file = e.dataTransfer.files;
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
       if (file) await loadFile(file);
     });
 
@@ -1267,7 +1211,7 @@
       const histRm = e.target.closest('[data-history-remove]');
       if (histRm) {
         e.stopPropagation();
-        History.history.splice(parseInt(histRm.dataset.historyRemove, 10), 1);
+        state.history.splice(parseInt(histRm.dataset.historyRemove, 10), 1);
         History.save();
         History.render();
         return;
@@ -1295,7 +1239,7 @@
       const actionBtn = e.target.closest('[data-action]');
       if (actionBtn) {
         const action = actionBtn.dataset.action;
-        if (Actions[action]) Actions[action]();
+        if (Actions[action]) void Actions[action]();
         return;
       }
       // Close download menu on outside click
@@ -1399,6 +1343,7 @@
      17. FILE LOADER
      ===================================================== */
   async function loadFile(file) {
+    if (!file || typeof file.text !== 'function') { Toast.error('Choose a readable text file'); return; }
     if (file.size > 5 * 1024 * 1024) {
       Toast.error('File too large (max 5MB)');
       return;
@@ -1440,31 +1385,26 @@
     const savedReplace = Storage.get(Storage.KEYS.REPLACE, '');
     const savedWidth = Storage.get(Storage.KEYS.WIDTH, 320);
 
-    if (savedWidth) {
-      dom.sidebar.style.width = savedWidth + 'px';
-      state.sidebarWidth = savedWidth;
+    if (typeof savedWidth === 'number' && Number.isFinite(savedWidth)) {
+      state.sidebarWidth = Math.min(Math.max(savedWidth, 250), 550);
+      dom.sidebar.style.width = state.sidebarWidth + 'px';
     }
 
     // Restore UI values
-    if (savedPattern) {
+    if (typeof savedPattern === 'string') {
       dom.regexInput.value = savedPattern;
       state.pattern = savedPattern;
       lastSavedPattern = savedPattern;
     }
-    if (savedFlags) {
+    if (typeof savedFlags === 'string') {
       dom.flagsInput.value = savedFlags;
-      // Sync toggles
-      dom.flagToggles.forEach(input => {
-        input.checked = savedFlags.includes(input.dataset.flag);
-      });
+      dom.flagToggles.forEach(input => { input.checked = savedFlags.includes(input.dataset.flag); });
     } else {
-      dom.flagToggles.forEach(input => {
-        input.checked = input.dataset.flag === 'g';
-      });
+      dom.flagToggles.forEach(input => { input.checked = input.dataset.flag === 'g'; });
       dom.flagsInput.value = 'g';
     }
-    if (savedText) dom.testString.value = savedText;
-    if (savedReplace) dom.replaceInput.value = savedReplace;
+    if (typeof savedText === 'string') dom.testString.value = savedText;
+    if (typeof savedReplace === 'string') dom.replaceInput.value = savedReplace;
 
     // Initial render
     renderCheatsheet();

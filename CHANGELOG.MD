@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-10-22
+
+### Fixed
+- Correct capture data shape and character offsets used by match summaries and group highlighting.
+- Advance zero-width matches according to Unicode code-point boundaries.
+- Reject duplicate flags and the incompatible u/v flag combination with clear errors.
+- Fix file upload and drag-and-drop handling to read the selected File rather than the FileList.
+- Fix history removal and validate restored localStorage data before rendering.
+- Keep saved empty flags consistent with the flag toggles.
+
+### Added
+- Worker-isolated regex matching, replacement, and split operations with a 2.5-second timeout and a manual Stop control.
+- Explicit warnings when the match or split result cap is reached.
+- Resource limits for pattern/text/replacement/output size and favorites count.
+- Automated regression tests and a GitHub Actions test workflow.
+- d (indices) and v (Unicode sets) flag toggles.
+
 ## [1.0.0] - 2024-08-03
 
 ### ✨ Initial Release
